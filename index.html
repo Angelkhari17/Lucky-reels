@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lucky Reels</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Figtree:wght@400;600;700&display=swap">
+<style>
+:root{--bg:#e3e9e2;--ink:#1c2a23;--muted:#56655c;--cab:#6e1423;--cab2:#470b17;--brass:#dcab48;--paper:#f6f2e6;--win:#1f8a4c;--lose:#b3261e;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1612;--ink:#e8eee9;--muted:#9aa89f}}
+:root[data-theme="dark"]{--bg:#0e1612;--ink:#e8eee9;--muted:#9aa89f}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Figtree',system-ui,sans-serif;min-height:100vh;display:flex;justify-content:center;padding:20px 14px}
+main{width:100%;max-width:440px}
+h1{font-family:'Alfa Slab One',Georgia,serif;font-weight:400;font-size:2.1rem;margin:0 0 4px;text-align:center;letter-spacing:.5px}
+.sub{text-align:center;color:var(--muted);margin:0 0 18px}
+.cabinet{background:linear-gradient(var(--cab),var(--cab2));border:4px solid var(--brass);border-radius:22px;padding:18px;color:#fff;box-shadow:0 10px 0 var(--cab2)}
+.hidden{display:none!important}
+label{display:block;font-weight:600;margin-bottom:6px}
+input[type=number]{width:100%;font:inherit;font-size:1.1rem;padding:10px 12px;border-radius:10px;border:2px solid var(--brass);background:var(--paper);color:#1c2a23}
+button{font:inherit;font-weight:700;cursor:pointer;border:0;border-radius:12px;padding:12px 16px}
+button:focus-visible,input:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.primary{background:var(--brass);color:#2a1700;width:100%;font-size:1.15rem}
+.primary:disabled{opacity:.5;cursor:not-allowed}
+.ghost{background:transparent;color:#fff;border:2px solid #ffffff66}
+.bar{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px}
+.bal{font-family:'Alfa Slab One',Georgia,serif;font-size:1.8rem;color:var(--brass)}
+.window{display:grid;grid-template-columns:28px repeat(3,1fr);gap:6px;background:#1a0509;padding:10px;border-radius:14px;margin-bottom:14px;align-items:center}
+.mark{width:22px;height:22px;border-radius:50%;background:#3a1620;color:#ffffff88;display:grid;place-items:center;font-size:.75rem;font-weight:700}
+.mark.on{background:var(--brass);color:#2a1700}
+.cell{background:var(--paper);border-radius:10px;aspect-ratio:1;display:grid;place-items:center;font-size:clamp(2rem,11vw,3.2rem);transition:transform .15s,box-shadow .15s}
+.cell.win{box-shadow:0 0 0 4px var(--win);transform:scale(1.05)}
+.controls{display:grid;gap:12px;margin-bottom:14px}
+.lines{display:flex;gap:8px}
+.lines button{flex:1;background:#ffffff1f;color:#fff}
+.lines button[aria-pressed=true]{background:var(--brass);color:#2a1700}
+.total{display:flex;justify-content:space-between;font-weight:600}
+#msg{min-height:3em;margin:12px 0 0;font-weight:600;text-align:center}
+.row2{display:flex;gap:8px;margin-top:10px}
+.row2 button{flex:1}
+details{margin-top:16px;background:color-mix(in srgb,var(--ink) 8%,transparent);border-radius:12px;padding:10px 14px}
+summary{cursor:pointer;font-weight:700}
+table{width:100%;border-collapse:collapse;margin-top:8px}
+td,th{text-align:left;padding:4px 0}
+.note{color:var(--muted);font-size:.9rem;margin:8px 0 0}
+@media (prefers-reduced-motion:reduce){.cell{transition:none}}
+</style>
+</head>
+<body>
+<main>
+  <h1>Lucky Reels</h1>
+  <p class="sub">Match three in a row to win.</p>
+
+  <section class="cabinet" id="setup">
+    <label for="dep">How much do you want to deposit? ($)</label>
+    <input type="number" id="dep" min="1" step="1" value="100" inputmode="numeric">
+    <p id="setupMsg" role="status" style="min-height:1.5em;margin:8px 0"></p>
+    <button class="primary" id="startBtn">Start playing</button>
+    <p class="note" id="stats" style="color:#ffffffbb"></p>
+  </section>
+
+  <section class="cabinet hidden" id="game">
+    <div class="bar"><span>Balance</span><span class="bal" id="bal">$0</span></div>
+    <div class="window" id="win" aria-label="Slot machine reels"></div>
+    <div class="controls">
+      <div>
+        <label id="linesLbl">Lines to bet on</label>
+        <div class="lines" id="lines" role="group" aria-labelledby="linesLbl"></div>
+      </div>
+      <div>
+        <label for="bet">Bet per line ($1 to $100)</label>
+        <input type="number" id="bet" min="1" max="100" step="1" value="5" inputmode="numeric">
+      </div>
+      <div class="total"><span>Total bet</span><span id="total">$5</span></div>
+    </div>
+    <button class="primary" id="spin">Spin</button>
+    <p id="msg" role="status" aria-live="polite"></p>
+    <div class="row2"><button class="ghost" id="cash">Cash out</button></div>
+  </section>
+
+  <details>
+    <summary>Payouts</summary>
+    <table>
+      <tr><th>Line of</th><th>Pays (bet x)</th></tr>
+      <tr><td>💎💎💎</td><td>5</td></tr>
+      <tr><td>🔔🔔🔔</td><td>4</td></tr>
+      <tr><td>🍋🍋🍋</td><td>3</td></tr>
+      <tr><td>🍒🍒🍒</td><td>2</td></tr>
+    </table>
+    <p class="note">Line 1 is the top row, line 2 the middle, line 3 the bottom. Play money only.</p>
+  </details>
+</main>
+
+<script>
+const MAX_LINES=3, MAX_BET=100, MIN_BET=1, ROWS=3, COLS=3;
+const COUNT={A:2,B:4,C:6,D:8}, VALUE={A:5,B:4,C:3,D:2};
+const ICON={A:'💎',B:'🔔',C:'🍋',D:'🍒'}, KEYS=Object.keys(COUNT);
+const $=id=>document.getElementById(id);
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+let balance=0, start=0, lines=1, spinning=false;
+let stats=loadStats();
+
+function loadStats(){try{return JSON.parse(localStorage.getItem('reels-stats'))||{spins:0,best:0}}catch(e){return{spins:0,best:0}}}
+function saveStats(){try{localStorage.setItem('reels-stats',JSON.stringify(stats))}catch(e){}}
+function showStats(){$('stats').textContent=`Your spins: ${stats.spins}. Best balance: $${stats.best}.`}
+
+/* Build the reel window: for each row, a line marker then one cell per column */
+const cells=[];
+for(let c=0;c<COLS;c++)cells.push([]);
+const marks=[];
+for(let r=0;r<ROWS;r++){
+  const m=document.createElement('span');m.className='mark';m.textContent=r+1;$('win').appendChild(m);marks.push(m);
+  for(let c=0;c<COLS;c++){const d=document.createElement('div');d.className='cell';d.textContent='❔';$('win').appendChild(d);cells[c][r]=d;}
+}
+/* Line buttons */
+for(let i=1;i<=MAX_LINES;i++){
+  const b=document.createElement('button');b.textContent=i;b.dataset.n=i;$('lines').appendChild(b);
+  b.addEventListener('click',()=>{lines=i;refresh()});
+}
+
+function refresh(){
+  [...$('lines').children].forEach(b=>b.setAttribute('aria-pressed',+b.dataset.n===lines));
+  marks.forEach((m,i)=>m.classList.toggle('on',i<lines));
+  $('total').textContent='$'+(getBet()*lines);
+  $('bal').textContent='$'+balance;
+}
+function getBet(){const v=parseInt($('bet').value,10);return isNaN(v)?0:v}
+
+/* Same logic as the Python version: each reel draws without replacement */
+function spinResult(){
+  const all=[];KEYS.forEach(k=>{for(let i=0;i<COUNT[k];i++)all.push(k)});
+  const cols=[];
+  for(let c=0;c<COLS;c++){
+    const pool=all.slice(),col=[];
+    for(let r=0;r<ROWS;r++){col.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0])}
+    cols.push(col);
+  }
+  return cols;
+}
+function check(cols,n,bet){
+  let w=0;const wl=[];
+  for(let l=0;l<n;l++){const s=cols[0][l];if(cols.every(col=>col[l]===s)){w+=VALUE[s]*bet;wl.push(l)}}
+  return{w,wl};
+}
+
+function say(t,cls){const m=$('msg');m.textContent=t;m.style.color=cls==='win'?'#8dffb5':cls==='lose'?'#ffb4ab':'#fff'}
+
+function spin(){
+  if(spinning)return;
+  const bet=getBet();
+  if(bet<MIN_BET||bet>MAX_BET){say(`Bet must be between $${MIN_BET} and $${MAX_BET}.`,'lose');return}
+  const total=bet*lines;
+  if(total>balance){say(`Not enough money. Your balance is $${balance}.`,'lose');return}
+
+  spinning=true;$('spin').disabled=true;say('Spinning...');
+  cells.flat().forEach(c=>c.classList.remove('win'));
+  balance-=total;refresh();
+  const result=spinResult();
+  let done=0;
+  for(let c=0;c<COLS;c++){
+    const stopAt=reduce?0:600+c*450;
+    const t=reduce?null:setInterval(()=>{cells[c].forEach(el=>el.textContent=ICON[KEYS[Math.floor(Math.random()*4)]])},80);
+    setTimeout(()=>{
+      if(t)clearInterval(t);
+      cells[c].forEach((el,r)=>el.textContent=ICON[result[c][r]]);
+      if(++done===COLS)finish(result,bet,total);
+    },stopAt);
+  }
+}
+function finish(result,bet,total){
+  const {w,wl}=check(result,lines,bet);
+  balance+=w;
+  wl.forEach(r=>{for(let c=0;c<COLS;c++)cells[c][r].classList.add('win')});
+  stats.spins++;stats.best=Math.max(stats.best,balance);saveStats();
+  if(w>0)say(`You won $${w} on line ${wl.map(x=>x+1).join(', ')}!`,'win');
+  else say('No win this time.','lose');
+  spinning=false;$('spin').disabled=false;refresh();
+  if(balance<MIN_BET){endGame('You ran out of money. Game over.')}
+}
+
+function endGame(note){
+  const net=balance-start;
+  $('game').classList.add('hidden');$('setup').classList.remove('hidden');
+  $('setupMsg').textContent=`${note} You finished ${net>=0?'up':'down'} $${Math.abs(net)}.`;
+  showStats();
+}
+
+$('startBtn').addEventListener('click',()=>{
+  const v=parseInt($('dep').value,10);
+  if(isNaN(v)||v<1){$('setupMsg').textContent='Enter a whole number of at least $1.';return}
+  balance=start=v;lines=1;
+  $('setup').classList.add('hidden');$('game').classList.remove('hidden');
+  cells.flat().forEach(c=>{c.textContent='❔';c.classList.remove('win')});
+  say('Choose your lines and bet, then spin.');refresh();
+});
+$('spin').addEventListener('click',spin);
+$('bet').addEventListener('input',refresh);
+$('cash').addEventListener('click',()=>{if(!spinning)endGame(`You cashed out $${balance}.`)});
+showStats();refresh();
+</script>
+</body>
+</html>
